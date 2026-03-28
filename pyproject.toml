@@ -11,6 +11,7 @@ dev = [
     "cocotb>=2.0.1",
     "cocotb-test>=0.2.6",
     "librelane==3.0.0rc1",
+    "numpy>=1.26.4",
     "pytest>=9.0.2",
     "ruff>=0.15.8",
     "tt-support-tools",

@@ -1,12 +1,14 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-module tb ();
+module tb_system ();
+    `ifdef COCOTB_SIM
     initial begin
-        $dumpfile("tb.fst");
-        $dumpvars(0, tb);
+        $dumpfile("tb_system.fst");
+        $dumpvars(0, tb_system);
         #1;
     end
+    `endif
 
     reg        clk;
     reg        rst_n;
@@ -17,7 +19,7 @@ module tb ();
     wire [7:0] uio_out;
     wire [7:0] uio_oe;
 
-    tt_um_tinymoa_ihp0p4_16x16 dut (
+    tt_um_tinymoa_ihp0p4_8x8 dut (
         .ui_in   (ui_in),
         .uo_out  (uo_out),
         .uio_in  (uio_in),
