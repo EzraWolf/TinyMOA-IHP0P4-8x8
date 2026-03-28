@@ -3,6 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * TinyMOA top level for TinyTapeout IHP0P4 experimental tapeout.
+ * Passthrough wrapper for 8x8 DCIM core.
+ *
+ * Pin mapping:
+ *   ui_in[7:0]   data_in (weights or activations)
+ *   uo_out[7:0]  result (zero-padded from ACC_WIDTH)
+ * 
+ *   uio[0]       IN   wen
+ *   uio[1]       IN   execute
+ *   uio[2]       IN   read_next (increments col_sel)
+ *   uio[3]       IN   acc_clear
+ *   uio[4]       OUT  col_sel[0]
+ *   uio[5]       OUT  col_sel[1]
+ *   uio[6]       OUT  col_sel[2]
+ *   uio[7]       OUT  done
+ *   uio_oe       8'b11110000
  */
 
 `default_nettype none
@@ -18,47 +33,36 @@ module tt_um_tinymoa_ihp0p4_8x8 (
     input  wire       clk,
     input  wire       rst_n
 );
+    localparam DIM = 8;
+    localparam ACC = 6;
 
-    wire        ctl_ready;
-    wire [31:0] ctl_rdata;
-    wire [31:0] mem_wdata;
-    wire        mem_write;
-    wire        mem_read;
-    wire [9:0]  mem_addr;
-    wire [2:0]  dbg_state;
+    reg [2:0] col_sel;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            col_sel <= 0;
+        else if (uio_in[2])
+            col_sel <= col_sel + 1;
+    end
 
-    // ui_in[7] = ctl_write, [6] = ctl_read, [5:0] = ctl_addr
-    // uio_in[7:0] = mem_rdata / ctl_wdata low byte
-    wire [31:0] stub_mem_rdata  = {24'd0, uio_in};
-    wire [31:0] stub_ctl_wdata = {24'd0, uio_in};
+    wire [ACC-1:0] result;
+    wire           done;
 
-    tinymoa_dcim #(
-        .ARRAY_DIM (8),
-        .ACC_WIDTH (5)
-    ) u_dcim (
+    tinymoa_dcim #(.ARRAY_DIM(DIM), .ACC_WIDTH(ACC)) u_dcim (
         .clk       (clk),
         .nrst      (rst_n),
-
-        .ctl_ready (ctl_ready),
-        .ctl_write (ui_in[7]),
-        .ctl_wdata (stub_ctl_wdata),
-        .ctl_read  (ui_in[6]),
-        .ctl_rdata (ctl_rdata),
-        .ctl_addr  (ui_in[5:0]),
-
-        .mem_rdata (stub_mem_rdata),
-        .mem_wdata (mem_wdata),
-        .mem_write (mem_write),
-        .mem_read  (mem_read),
-        .mem_addr  (mem_addr),
-
-        .dbg_state (dbg_state)
+        .data_in   (ui_in),
+        .wen       (uio_in[0]),
+        .execute   (uio_in[1]),
+        .acc_clear (uio_in[3]),
+        .col_sel   (col_sel),
+        .result    (result),
+        .dbg_done  (done)
     );
 
-    assign uo_out  = {mem_addr[1:0], mem_read, mem_write, ctl_ready, dbg_state};
-    assign uio_out = ctl_rdata[7:0] | mem_wdata[7:0];
-    assign uio_oe  = 8'hFF;
+    assign uo_out  = {{(8-ACC){1'b0}}, result};
+    assign uio_out = {done, col_sel, 4'b0};
+    assign uio_oe  = 8'b11110000;
 
-    wire _unused = &{ena, ctl_rdata[31:8], mem_wdata[31:8], mem_addr[9:2], 1'b0};
+    wire _unused = ena;
 
 endmodule
