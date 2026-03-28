@@ -1,0 +1,25 @@
+[project]
+name = "tinymoa-ihp0p4-8x8"
+version = "0.1.0"
+description = "8x8 digital compute-in-memory (DCIM) core on an experimental IHP SG13G2 CMOS5L shuttle."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "cocotb>=2.0.1",
+    "cocotb-test>=0.2.6",
+    "librelane==3.0.0rc1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.8",
+    "tt-support-tools",
+]
+
+[tool.uv.workspace]
+members = [
+    "tt",
+]
+
+[tool.uv.sources]
+tt-support-tools = { workspace = true }
